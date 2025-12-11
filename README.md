@@ -3,7 +3,7 @@ A personal financial control system built for AWS deployment, providing comprehe
 
 ## ⚡ Quick Start
 
-### Development Setup
+
 
 1. **Clone and Install**
    ```bash
