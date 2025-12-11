@@ -21,7 +21,7 @@ jobs:
       - name: Create .env file and Build
         run: |
           # Cria o arquivo .env na raiz do projeto forçando a URL
-          echo "REACT_APP_API_URL=http://alb-principal-293281983.us-east-1.elb.amazonaws.com" > .env
+          echo "REACT_APP_API_BASE_URL=http://alb-principal-293281983.us-east-1.elb.amazonaws.com" > .env
           
           # Mostra o conteúdo só para confirmar (vai aparecer no log do Git)
           cat .env
