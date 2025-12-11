@@ -23,7 +23,6 @@ jobs:
           CI: false 
           # CI: false impede que avisos (warnings) simples parem o deploy
           REACT_APP_API_URL: ${{ env.REACT_APP_API_URL }} 
-          # O React "embuti" as variáveis de ambiente na hora do build
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
