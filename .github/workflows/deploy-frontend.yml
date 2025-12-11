@@ -2,72 +2,45 @@ name: Deploy Frontend
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
-
-permissions:
-  id-token: write
-  contents: read
-
-# ---------------------------------------------------
-# Config centralizada (Settings → Secrets and variables → Actions)
-# ---------------------------------------------------
-env:
-  AWS_REGION:           ${{ vars.AWS_REGION }}                 # ex: us-east-1
-  ROLE_TO_ASSUME:       ${{ secrets.AWS_ROLE_TO_ASSUME }}      # ex: arn:aws:iam::123456789012:role/GitHubActionsRole
-  FRONTEND_BUCKET:      ${{ vars.FRONTEND_BUCKET }}            # ex: my-money-frontend-bucket
-  CLOUDFRONT_DIST_ID:   ${{ vars.CLOUDFRONT_DIST_ID }}         # ex: EABCDEF123456
-  CF_PUBLIC_DOMAIN:     ${{ vars.CF_PUBLIC_DOMAIN }}           # ex: dxxxxx.cloudfront.net
-  # A URL da API usada no build do React (build-time)
-  REACT_APP_API_BASE_URL: ${{ vars.REACT_APP_API_BASE_URL }}   # ex: https://dxxxxx.cloudfront.net/api
+    branches:
+      - main
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v3
 
-      - name: Node LTS
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
+      - name: Install Dependencies
+        run: npm install
 
-      - name: Install & Build (CRA lê REACT_APP_* em build-time)
+      - name: Build React App
+        run: npm run build
         env:
-          REACT_APP_API_BASE_URL: ${{ env.REACT_APP_API_BASE_URL }}
-        run: |
-          npm ci
-          npm run build
+          CI: false 
+          # CI: false impede que avisos (warnings) simples parem o deploy
+          REACT_APP_API_URL: ${{ env.REACT_APP_API_URL }} 
+          # O React "embuti" as variáveis de ambiente na hora do build
 
-      - name: Configure AWS creds (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ env.ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      # (Opcional) garantir headers HTTP adequados ao publicar:
-      #  - assets com cache longo e imutável
-      #  - index.html SEM cache (para refletir novas releases)
-      - name: Upload build to S3 (assets com cache longo)
+      - name: Deploy to S3
         run: |
-          aws s3 sync build/ "s3://${{ env.FRONTEND_BUCKET }}/" \
-            --delete \
-            --exclude "index.html" \
-            --cache-control "public,max-age=31536000,immutable"
+          # Envia a pasta build para o Bucket S3
+          aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
-      - name: Upload index.html (no-cache)
-        run: |
-          aws s3 cp build/index.html "s3://${{ env.FRONTEND_BUCKET }}/index.html" \
-            --cache-control "no-cache,no-store,must-revalidate"
-
-      - name: Invalidate CloudFront
+      # (Opcional) Se você cadastrou o ID do CloudFront, ele limpa o cache
+      - name: Invalidate CloudFront Cache
+        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${{ env.CLOUDFRONT_DIST_ID }}" \
+            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
             --paths "/*"
-
-      - name: Print public URL
-        run: echo "App publicado em https://${{ env.CF_PUBLIC_DOMAIN }}"
