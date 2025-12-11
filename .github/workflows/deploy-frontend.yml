@@ -36,9 +36,8 @@ jobs:
           # Envia a pasta build para o Bucket S3
           aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
-      # (Opcional) Se você cadastrou o ID do CloudFront, ele limpa o cache
       - name: Invalidate CloudFront Cache
-        if: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
+        if: secrets.CLOUDFRONT_DISTRIBUTION_ID != ''
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
