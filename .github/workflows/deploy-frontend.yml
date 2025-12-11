@@ -21,8 +21,8 @@ jobs:
         run: npm run build
         env:
           CI: false 
-          # CI: false impede que avisos (warnings) simples parem o deploy
-          REACT_APP_API_URL: ${{ env.REACT_APP_API_URL }} 
+          # A variável REACT_APP_API_URL será lida automaticamente do seu arquivo .env
+          # que você já subiu para o repositório.
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -36,9 +36,16 @@ jobs:
           # Envia a pasta build para o Bucket S3
           aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
+      # Correção aplicada aqui: Lógica movida para dentro do comando (Shell)
       - name: Invalidate CloudFront Cache
-        if: secrets.CLOUDFRONT_DISTRIBUTION_ID != ''
+        env:
+          CLOUDFRONT_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
-          aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
-            --paths "/*"
+          if [ -n "$CLOUDFRONT_ID" ]; then
+            echo "Limpando cache do CloudFront..."
+            aws cloudfront create-invalidation \
+              --distribution-id $CLOUDFRONT_ID \
+              --paths "/*"
+          else
+            echo "Nenhum ID de CloudFront definido. Pulando limpeza de cache."
+          fi
