@@ -23,7 +23,7 @@ jobs:
         env:
           CI: false 
           # Agora estamos injetando o link do Load Balancer direto no build
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }} 
+          REACT_APP_API_URL: http://alb-principal-293281983.us-east-1.elb.amazonaws.com/
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
