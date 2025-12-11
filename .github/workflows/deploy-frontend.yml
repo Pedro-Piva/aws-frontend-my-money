@@ -17,12 +17,13 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
+      # --- AQUI ESTÁ A MUDANÇA IMPORTANTE ---
       - name: Build React App
         run: npm run build
         env:
           CI: false 
-          # Nota: A variável REACT_APP_API_URL será lida automaticamente 
-          # do seu arquivo .env que você já subiu para o Git.
+          # Agora estamos injetando o link do Load Balancer direto no build
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }} 
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -33,15 +34,12 @@ jobs:
 
       - name: Deploy to S3
         run: |
-          # Envia a pasta build para o Bucket S3
           aws s3 sync build/ s3://${{ secrets.AWS_S3_BUCKET }} --delete
 
-      # CORREÇÃO AQUI: Removemos o 'if' problemático e passamos a lógica para o script
       - name: Invalidate CloudFront Cache
         env:
           DIST_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
         run: |
-          # Verifica se a variável DIST_ID não está vazia (-n)
           if [ -n "$DIST_ID" ]; then
             echo "Limpando cache do CloudFront..."
             aws cloudfront create-invalidation \
