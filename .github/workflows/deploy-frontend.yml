@@ -18,12 +18,18 @@ jobs:
         run: npm install
 
       # --- AQUI ESTÁ A MUDANÇA IMPORTANTE ---
-      - name: Build React App
-        run: npm run build
+      - name: Create .env file and Build
+        run: |
+          # Cria o arquivo .env na raiz do projeto forçando a URL
+          echo "REACT_APP_API_URL=http://alb-principal-293281983.us-east-1.elb.amazonaws.com" > .env
+          
+          # Mostra o conteúdo só para confirmar (vai aparecer no log do Git)
+          cat .env
+          
+          # Roda o build (que agora vai ler esse arquivo obrigatoriamente)
+          npm run build
         env:
-          CI: false 
-          # Agora estamos injetando o link do Load Balancer direto no build
-          REACT_APP_API_URL: http://alb-principal-293281983.us-east-1.elb.amazonaws.com/
+          CI: false
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
